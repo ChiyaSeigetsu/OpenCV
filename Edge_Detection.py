@@ -4,10 +4,10 @@ import os
 import tkinter as tk
 from tkinter import filedialog
 
-def detect_edges(image_path):
+def detect_edges_and_contours(image_path):
     """
-    Detects edges in an image using Canny, Laplacian, and Sobel filters.
-    Saves the resulting edge-detected images to files.
+    Detects edges and contours in an image using Canny, Laplacian, and Sobel filters.
+    Saves the resulting edge-detected and contour images to files.
 
     Args:
         image_path (str): The path to the input image file.
@@ -24,7 +24,7 @@ def detect_edges(image_path):
     # Get the original image's name without extension for saving later
     base_name = os.path.splitext(os.path.basename(image_path))[0]
 
-    # 2. Pre-processing: Reduce noise (important for edge detection)
+    # 2. Pre-processing: Reduce noise (important for edge and contour detection)
     blurred = cv2.GaussianBlur(img, (7, 7), 0)  # Increased Gaussian kernel size to 7x7 for more blurring
     gray = cv2.cvtColor(blurred, cv2.COLOR_BGR2GRAY)
 
@@ -38,18 +38,49 @@ def detect_edges(image_path):
 
     # b) Laplacian Edge Detection
     laplacian = cv2.Laplacian(gray, cv2.CV_8U)
-    # Increase brightness of Laplacian output
-    laplacian_bright = np.clip(laplacian * 2.0, 0, 255).astype(np.uint8)  # Multiply by 2 and clip
-    cv2.imwrite(f"{base_name}_laplacian.jpg", laplacian_bright)
+    cv2.imwrite(f"{base_name}_laplacian.jpg", laplacian)
 
     # c) Canny Edge Detection
-    canny = cv2.Canny(gray, 20, 40)  # Lower and upper thresholds
+    canny = cv2.Canny(gray, 10, 25)  # Lower and upper thresholds
+    cv2.imwrite(f"{base_name}_canny.jpg", canny)
 
-    # Apply morphological operations to clean up Canny edges
-    kernel = np.ones((3, 3), np.uint8)  # 3x3 kernel for morphological operations
-    canny_cleaned = cv2.morphologyEx(canny, cv2.MORPH_CLOSE, kernel, iterations=1)  # Closing operation
-    cv2.imwrite(f"{base_name}_canny.jpg", canny_cleaned)
+    # 5. Contour Detection
+    # Find contours in the cleaned Canny output
+    contours, _ = cv2.findContours(canny, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
+    # Draw the contours on the original image (for visualization)
+    contour_img = img.copy()  # Create a copy of original image to draw contours on
+    cv2.drawContours(contour_img, contours, -1, (0, 255, 0), 2)  # Draw all contours in green
+    cv2.imwrite(f"{base_name}_contours.jpg", contour_img)  # save contour image
+
+    # 6. Crack Fixing (Simplified)
+    fixed_img = fix_cracks(img, contours)
+    cv2.imwrite(f"{base_name}_fixed.jpg", fixed_img)
+
+def fix_cracks(image, contours):
+    """
+    Attempts to fix cracks in the image by dilating the regions around the detected contours.
+    This is a simplified approach and may not work for all types of cracks.
+
+    Args:
+        image (numpy.ndarray): The original input image.
+        contours (list): List of contours detected in the image.
+
+    Returns:
+        numpy.ndarray: The image with the cracks "fixed".
+    """
+    # Create a mask from the contours
+    mask = np.zeros_like(image[:,:,0], dtype=np.uint8)  # Single-channel mask
+    cv2.drawContours(mask, contours, -1, 255, thickness=cv2.FILLED)  # Fill the contours in the mask
+
+    # Dilate the mask to fill in crack gaps
+    kernel = np.ones((5, 5), np.uint8)  # Adjust kernel size as needed
+    dilated_mask = cv2.dilate(mask, kernel, iterations=2)  # Adjust iterations as needed
+
+    # Use the dilated mask to inpaint the original image
+    fixed_image = cv2.inpaint(image, dilated_mask, inpaintRadius=3, flags=cv2.INPAINT_TELEA) # Adjust inpaintRadius as needed
+
+    return fixed_image
 
 
 def main():
@@ -65,7 +96,7 @@ def main():
 
     # 3. Check if a file was selected
     if file_path:
-        detect_edges(file_path)  # Process the selected image
+        detect_edges_and_contours(file_path)  # Process the selected image
     else:
         print("No file selected.")
 
