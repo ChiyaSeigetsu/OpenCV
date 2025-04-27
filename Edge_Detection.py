@@ -41,7 +41,7 @@ def detect_edges_and_contours(image_path):
     cv2.imwrite(f"{base_name}_laplacian.jpg", laplacian)
 
     # c) Canny Edge Detection
-    canny = cv2.Canny(gray, 10, 25)  # Lower and upper thresholds
+    canny = cv2.Canny(gray, 10, 40)  # Lower and upper thresholds
     cv2.imwrite(f"{base_name}_canny.jpg", canny)
 
     # 5. Contour Detection
