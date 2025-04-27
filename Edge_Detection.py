@@ -13,7 +13,7 @@ def detect_edges(image_path):
         image_path (str): The path to the input image file.
 
     Returns:
-        None.  Displays the original image and the edge-detected images.
+        None.
     """
     # 1. Load the image
     img = cv2.imread(image_path, cv2.IMREAD_COLOR)  # Load as color image
@@ -25,9 +25,7 @@ def detect_edges(image_path):
     base_name = os.path.splitext(os.path.basename(image_path))[0]
 
     # 2. Pre-processing: Reduce noise (important for edge detection)
-    blurred = cv2.GaussianBlur(img, (5, 5), 0)  # 5x5 Gaussian blur
-
-    # 3. Convert to grayscale (edge detection is often done on grayscale images)
+    blurred = cv2.GaussianBlur(img, (7, 7), 0)  # Increased Gaussian kernel size to 7x7 for more blurring
     gray = cv2.cvtColor(blurred, cv2.COLOR_BGR2GRAY)
 
     # 4. Edge Detection
@@ -40,19 +38,19 @@ def detect_edges(image_path):
 
     # b) Laplacian Edge Detection
     laplacian = cv2.Laplacian(gray, cv2.CV_8U)
-    cv2.imwrite(f"{base_name}_laplacian.jpg", laplacian)
+    # Increase brightness of Laplacian output
+    laplacian_bright = np.clip(laplacian * 2.0, 0, 255).astype(np.uint8)  # Multiply by 2 and clip
+    cv2.imwrite(f"{base_name}_laplacian.jpg", laplacian_bright)
 
     # c) Canny Edge Detection
-    canny = cv2.Canny(gray, 20, 50)  # Lower and upper thresholds
-    cv2.imwrite(f"{base_name}_canny.jpg", canny)
+    canny = cv2.Canny(gray, 20, 40)  # Lower and upper thresholds
 
-    # 5. Display the results
-    cv2.imshow('Original Image', img)
-    cv2.imshow('Sobel Edges', sobel_combined)
-    cv2.imshow('Laplacian Edges', laplacian)
-    cv2.imshow('Canny Edges', canny)
-    cv2.waitKey(0)  # Wait for a key press to close the windows
-    cv2.destroyAllWindows()
+    # Apply morphological operations to clean up Canny edges
+    kernel = np.ones((3, 3), np.uint8)  # 3x3 kernel for morphological operations
+    canny_cleaned = cv2.morphologyEx(canny, cv2.MORPH_CLOSE, kernel, iterations=1)  # Closing operation
+    cv2.imwrite(f"{base_name}_canny.jpg", canny_cleaned)
+
+
 
 def main():
     # 1. Create a Tkinter root window (it will be hidden)
