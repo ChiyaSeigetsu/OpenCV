@@ -2,15 +2,36 @@ import cv2
 import numpy as np
 import tkinter as tk
 from tkinter import filedialog
+from tkinter import simpledialog
 import os
 
-def detect_and_fix_cracks(image_path):
+def ask_for_thresholds():
+    """
+    Prompts the user for Canny edge detection thresholds (lower and upper).
+    Returns:
+        tuple: lower and upper threshold values.
+    """
+    root = tk.Tk()
+    root.withdraw()  # Hide the root window
+
+    # Ask for the lower threshold
+    lower_threshold = simpledialog.askinteger("Input", "Enter lower threshold (default 10):", minvalue=1, maxvalue=255, initialvalue=10)
+
+    # Ask for the upper threshold
+    upper_threshold = simpledialog.askinteger("Input", "Enter upper threshold (default 40):", minvalue=1, maxvalue=255, initialvalue=40)
+
+    # Return the thresholds, defaulting to 10 and 40 if no input is given
+    return lower_threshold if lower_threshold else 10, upper_threshold if upper_threshold else 40
+
+def detect_and_fix_cracks(image_path, lower_threshold=10, upper_threshold=40):
     """
     Detects lines (cracks) in an image using the Probabilistic Hough Transform and attempts to fix them.
     Saves the original image with detected and fixed cracks to a file.
 
     Args:
         image_path (str): The path to the input image file.
+        lower_threshold (int): Lower threshold for Canny edge detection.
+        upper_threshold (int): Upper threshold for Canny edge detection.
 
     Returns:
         None.  Saves the image to a file.
@@ -30,12 +51,11 @@ def detect_and_fix_cracks(image_path):
     blurred = cv2.GaussianBlur(gray, (5, 5), 0)
 
     # 3. Edge Detection: Use Canny Edge Detector
-    edges = cv2.Canny(blurred, 10, 40)
+    edges = cv2.Canny(blurred, lower_threshold, upper_threshold)
 
     # 4. Morphological Closing (to connect broken edges)
     kernel = np.ones((5, 5), np.uint8)
     edges_closed = cv2.morphologyEx(edges, cv2.MORPH_CLOSE, kernel, iterations=1)
-
 
     # 5. Line Detection: Probabilistic Hough Transform
     lines = cv2.HoughLinesP(edges_closed, 1, np.pi / 180, threshold=60,
@@ -52,15 +72,11 @@ def detect_and_fix_cracks(image_path):
         print("No lines detected.")
     cv2.imwrite(f"{base_name}_cracks.jpg", crack_img)  # Save the image with detected cracks
 
-
-
     # 7. Crack Fixing (Simplified)
     fixed_img = fix_cracks(img, lines, height, width)
 
     # 8. Save the image with detected and "fixed" cracks
     cv2.imwrite(f"{base_name}_cracks_fixed.jpg", fixed_img)
-
-
 
 def fix_cracks(image, lines, height, width):
     """
@@ -93,7 +109,6 @@ def fix_cracks(image, lines, height, width):
 
     return fixed_image
 
-
 def main():
     # 1. Create a Tkinter root window (it will be hidden)
     root = tk.Tk()
@@ -105,14 +120,15 @@ def main():
         filetypes=[("Image files", "*.*")]
     )
 
-    # 3. Check if a file was selected
+    # 3. Get custom thresholds from the user
+    lower_threshold, upper_threshold = ask_for_thresholds()
+
+    # 4. Check if a file was selected
     if file_path:
-        detect_and_fix_cracks(file_path)  # Process the selected image
+        detect_and_fix_cracks(file_path, lower_threshold, upper_threshold)  # Process the selected image with custom thresholds
         print(f"Image processed and saved: {os.path.splitext(os.path.basename(file_path))[0]}_cracks.jpg and {os.path.splitext(os.path.basename(file_path))[0]}_cracks_fixed.jpg")
     else:
         print("No file selected.")
-
-
 
 if __name__ == "__main__":
     main()

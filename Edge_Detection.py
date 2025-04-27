@@ -3,14 +3,35 @@ import numpy as np
 import os
 import tkinter as tk
 from tkinter import filedialog
+from tkinter import simpledialog
 
-def detect_edges_and_contours(image_path):
+def ask_for_thresholds():
+    """
+    Prompts the user for Canny edge detection thresholds (lower and upper).
+    Returns:
+        tuple: lower and upper threshold values.
+    """
+    root = tk.Tk()
+    root.withdraw()  # Hide the root window
+
+    # Ask for the lower threshold
+    lower_threshold = simpledialog.askinteger("Input", "Enter lower threshold (default 10):", minvalue=1, maxvalue=255, initialvalue=10)
+
+    # Ask for the upper threshold
+    upper_threshold = simpledialog.askinteger("Input", "Enter upper threshold (default 40):", minvalue=1, maxvalue=255, initialvalue=40)
+
+    # Return the thresholds, defaulting to 10 and 40 if no input is given
+    return lower_threshold if lower_threshold else 10, upper_threshold if upper_threshold else 40
+
+def detect_edges_and_contours(image_path, lower_threshold=10, upper_threshold=40):
     """
     Detects edges and contours in an image using Canny, Laplacian, and Sobel filters.
     Saves the resulting edge-detected and contour images to files.
 
     Args:
         image_path (str): The path to the input image file.
+        lower_threshold (int): Lower threshold for Canny edge detection.
+        upper_threshold (int): Upper threshold for Canny edge detection.
 
     Returns:
         None.
@@ -40,8 +61,8 @@ def detect_edges_and_contours(image_path):
     laplacian = cv2.Laplacian(gray, cv2.CV_8U)
     cv2.imwrite(f"{base_name}_laplacian.jpg", laplacian)
 
-    # c) Canny Edge Detection
-    canny = cv2.Canny(gray, 10, 40)  # Lower and upper thresholds
+    # c) Canny Edge Detection with user-defined thresholds
+    canny = cv2.Canny(gray, lower_threshold, upper_threshold)  # Lower and upper thresholds
     cv2.imwrite(f"{base_name}_canny.jpg", canny)
 
     # 5. Contour Detection
@@ -82,7 +103,6 @@ def fix_cracks(image, contours):
 
     return fixed_image
 
-
 def main():
     # 1. Create a Tkinter root window (it will be hidden)
     root = tk.Tk()
@@ -94,9 +114,12 @@ def main():
         filetypes=[("Image files", "*.*")]  # Filter for image files
     )
 
-    # 3. Check if a file was selected
+    # 3. Get custom thresholds from the user
+    lower_threshold, upper_threshold = ask_for_thresholds()
+
+    # 4. Check if a file was selected
     if file_path:
-        detect_edges_and_contours(file_path)  # Process the selected image
+        detect_edges_and_contours(file_path, lower_threshold, upper_threshold)  # Process the selected image with custom thresholds
     else:
         print("No file selected.")
 
