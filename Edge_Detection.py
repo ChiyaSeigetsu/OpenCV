@@ -91,7 +91,7 @@ def main():
     # 2. Show the file dialog and get the selected file path
     file_path = filedialog.askopenfilename(
         title="Select an image file",
-        filetypes=[("Image files", "*.png;*.jpg;*.jpeg;*.bmp")]  # Filter for image files
+        filetypes=[("Image files", "*.*")]  # Filter for image files
     )
 
     # 3. Check if a file was selected
