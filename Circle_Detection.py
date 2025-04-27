@@ -9,7 +9,7 @@ root = tk.Tk()
 root.withdraw()  # Hide the root window
 file_path = filedialog.askopenfilename(
     title="Select an Image",
-    filetypes=[("Image files", "*.jpg *.jpeg *.png *.bmp *.tiff")]
+    filetypes=[("Image files", "*.*")]
 )
 
 if file_path:
